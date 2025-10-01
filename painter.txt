@@ -1,0 +1,228 @@
+/ QCOM Demo Painter ROM
+
+/R1 is a temporary register
+/R2 is a timer
+/R3 is a temporary graphics holder
+
+/Start near the center of the screen
+MOV R0 $0x80
+/Main loop
+#4
+
+/If time for input
+MOV R1 R2
+ADD R1 $0xFF
+JIF $1 #0
+
+/Show
+MOV R1 R0
+/If first bit is set
+AND R1 $1
+JIF $1 #1
+JMP #2
+/Then
+#1
+MOV R1 R0
+/Bitshift R1 right
+SBR R1
+/Send to ifs depending on current value
+MOV R7 $0x0
+MFI R3 R1
+/If 01
+SUB R3 $0x0F
+JIF $1 #13
+MOV R7 $0x0
+MFI R3 R1
+/If 10
+SUB R3 $0xF0
+JIF $1 #14
+MOV R7 $0x0
+MFI R3 R1
+/If 11
+SUB R3 $0xFF
+JIF $1 #15
+
+/Fill left pixel
+MOV R7 $0x0
+MIL R1 $0x80
+SHW
+MIL R1 $0x0
+JMP #3
+
+#2 /Else
+MOV R1 R0
+/Bitshift R1 right
+SBR R1
+
+/Send to ifs depending on current value
+MOV R7 $0x0
+MFI R3 R1
+/If 01
+SUB R3 $0x0F
+JIF $1 #16
+MOV R7 $0x0
+MFI R3 R1
+/If 10
+SUB R3 $0xF0
+JIF $1 #17
+MOV R7 $0x0
+MFI R3 R1
+/If 11
+SUB R3 $0xFF
+JIF $1 #18
+
+/Fill right pixel
+MOV R7 $0x0
+MIL R1 $0x08
+SHW
+MIL R1 $0x0
+#3
+/Add to R2 timer
+ADD R2 $1
+JMP #4
+
+#0 /Input
+/Set timer to 0
+MOV R2 $0
+IN R1
+/if right
+AND R1 $0b00010000
+JNI $1 #5
+#6
+IN R1
+/if left
+AND R1 $0b00100000
+JNI $1 #7
+#8
+IN R1
+/if down
+AND R1 $0b10000000
+JNI $1 #9
+#10
+IN R1
+/if up
+AND R1 $0b01000000
+JNI $1 #11
+#12
+IN R1
+/If enter
+AND R1 $0b00001000
+JNI $1 #19
+#20
+JMP #4
+
+#5 /Move right
+MOV R1 R0
+/If first four bits are 1, don't
+NOT R1
+AND R1 $0x0F
+JIF $1 #6
+ADD R0 $1
+JMP #6
+
+#7 /Move left
+MOV R1 R0
+/If last four bits are 0, don't
+AND R1 $0x0F
+JIF $1 #8
+ADD R0 $0xFF
+JMP #8
+
+#9 /Move down
+MOV R1 R0
+/If first four bits are 0, don't
+AND R1 $0xF0
+JIF $1 #10
+ADD R0 $0xF0
+JMP #10
+
+#11 /Move up
+MOV R1 R0
+/If first four bits are 1, don't
+NOT R1
+AND R1 $0xF0
+JIF $1 #12
+ADD R0 $0x10
+JMP #12
+
+#19 /Paint pixel
+MOV R4 R0
+/If first bit is set
+AND R4 $1
+JIF $1 #21
+
+/Else
+MOV R4 R0
+SBR R4
+MOV R7 $0x0
+MFI R5 R4
+DIS R5
+MOV R6 R5
+AND R5 $0xF0
+NOT R6
+AND R6 $0x0F
+OR R5 R6
+/MOV R5 $0x0F
+MOV R7 $0x0
+MIL R4 R5
+JMP #22
+
+#21
+MOV R4 R0
+SBR R4
+MOV R7 $0x0
+MFI R5 R4
+DIS R5
+MOV R6 R5
+AND R5 $0x0F
+NOT R6
+AND R6 $0xF0
+OR R5 R6
+/MOV R5 $0xF0
+MOV R7 $0x0
+MIL R4 R5
+
+#22
+JMP #20
+
+#13 / Left + 01
+MOV R7 $0x0
+MIL R1 $0x8F
+SHW
+MIL R1 $0x0F
+JMP #3
+
+#14 / Left + 10
+MOV R7 $0x0
+MIL R1 $0x60
+SHW
+MIL R1 $0xF0
+JMP #3
+
+#15 / Left + 11
+MOV R7 $0x0
+MIL R1 $0x6F
+SHW
+MIL R1 $0xFF
+JMP #3
+
+#16 / Right + 01
+MOV R7 $0x0
+MIL R1 $0x06
+SHW
+MIL R1 $0x0F
+JMP #3
+
+#17 / Right + 10
+MOV R7 $0x0
+MIL R1 $0xF8
+SHW
+MIL R1 $0xF0
+JMP #3
+
+#18 / Right + 11
+MOV R7 $0x0
+MIL R1 $0xF6
+SHW
+MIL R1 $0xFF
+JMP #3
